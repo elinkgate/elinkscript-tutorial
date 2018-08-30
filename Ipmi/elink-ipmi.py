@@ -1,0 +1,22 @@
+from time import sleep
+from elinkScriptUtils import *
+
+elinkObj = elink.newConnection("10.42.0.2")
+elinkObj.setVncMode("MODE_VNC_RGB")
+elinkObj.setUsbMode("USB_MODE_KEY|USB_MODE_VNC_HID|USB_MODE_MOUSE_ABS", 0)
+elinkObj.setKeyMode("KEY_INTF_HID")
+elinkObj.setMouseMode("POINT_INTF_HID_ABS")
+sleep(10)
+print("Connect to IPMI 10.42.0.105 usr/pass root/root")
+elinkObj.ipmiConnect("10.42.0.105", "root", "root")
+status_ret = elinkObj.ipmiStatus()
+print("{}".format(status_ret))
+print("Reset Server by using IPMI command reset option 0")
+elinkObj.ipmiReset(0)
+sleep(5)
+print("Wait for Bios setup Configurator")
+waitImage(elinkObj, "Ipmi/BiosSetupConfiguration.png")
+print("Reset Server to Unified Server Configurator by using IPMI command reset")
+elinkObj.ipmiReset(1)
+print("Wait for Unified Server Configurator")
+waitImage(elinkObj, "Ipmi/UnifiedServerConfigurator.png")
