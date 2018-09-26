@@ -226,6 +226,5 @@ waitImage(elinkObj, "Ipmi/UnifiedServerConfigurator.png")
 
 ```
 
-
 ![IPMI Reset](https://lh3.googleusercontent.com/-ueC6sWDyano/W4Z-CBXw9UI/AAAAAAAAAJw/ozmlyXDH2_Mw9rrN1SkTFHP3J9wSKFrSwCHMYCw/s0/2018-08-29_18-02-06.gif)
 
