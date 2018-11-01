@@ -1,7 +1,11 @@
 from __future__ import unicode_literals
+
+import os
+import sys
 from time import sleep
 from enum import IntFlag, unique, Enum
 
+sys.path.extend(['E:\\project\\elink-tutorial\\venv/Lib/site-packages'])
 debug_enable = 0
 
 ABS = 0
@@ -68,7 +72,7 @@ class VncMode(IntFlag):
     # serial mode , display serial data from Serial port
     VNC_MODE_SERIAL = 0x03
     # IPMI mode , display IPMI SOL (Serial overlan)
-    VNC_MODE_IPMI = 0x04
+    # VNC_MODE_IPMI = 0x04
     pass
 
 
@@ -109,7 +113,6 @@ class Coordinate:
 def dbg(msg):
     if debug_enable:
         print(msg)
-
 
 
 def getCurrentConnection():
@@ -260,3 +263,47 @@ def waitKeyReady(elinkObj):
         if key_state2 == key_state:
             print("Keyboard is ready")
             break
+
+
+def iseLinkKVMReaddy(ipaddr: str, port=5900):
+    """
+
+    :param ipaddr:
+    :param port:
+    :return:
+    """
+    import socket
+    # Simply change the host and port values
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect((ipaddr, port))
+        s.shutdown(2)
+        s.close()
+        sleep(1)
+        print("Success connecting to")
+        print(ipaddr, " on port: ", str(port))
+        return True
+    except socket.error as e:
+        print("Cannot connect to ")
+        print(ipaddr, " on port: ", str(port))
+        print(e)
+        return False
+
+
+def check_ping(hostname="10.42.0.2"):
+    response = os.system("ping -n 1 " + hostname)
+    # and then check the response...
+    if response == 0:
+        print("network activate")
+        return 1
+    else:
+        print("Network inactivate")
+        return 0
+
+    return pingstatus
+
+
+def WaitForELinkKVMReady(ipaddr: str, port=5900):
+    while check_ping(ipaddr) != 1:
+        sleep(1)
+    print("eLinkKVM Ready")
