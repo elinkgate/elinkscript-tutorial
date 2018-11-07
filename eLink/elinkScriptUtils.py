@@ -13,6 +13,25 @@ REL = 1
 
 
 @unique
+class ActionState(IntFlag):
+    ACTION_START = 0
+    ACTION_FINISH =  1
+
+
+@unique
+class Action(IntFlag):
+    POWER_ON = 0
+    POWER_OFF = 1
+    SWITCH_MODE_VNC = 2
+    SWITCH_MODE_USB = 3
+    FILE_TRANSFER = 4
+
+
+
+
+
+
+@unique
 class ElinkEvent(Enum):
     EVT_USB_EXT_RESET = 1
     EVT_USB_EXT_CONFIGURED = 2
@@ -137,8 +156,6 @@ def waitUntilNoChange(elinkObj, delay=None):
     elinkObj.setVncIdle(delay)
     while e.getIdCode() != 28:
         e = elinkObj.getEvent()
-        # dbg(" |- event id: " + str(e.getIdCode()))
-
         if e.getIdCode() == 28:
             elinkObj.setVncIdle(0)
             return
@@ -273,7 +290,6 @@ def iseLinkKVMReaddy(ipaddr: str, port=5900):
     :return:
     """
     import socket
-    # Simply change the host and port values
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect((ipaddr, port))

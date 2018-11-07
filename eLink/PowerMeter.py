@@ -143,7 +143,8 @@ class PowerMeterController(threading.Thread):
         self.y_volt = []
         self.y_amp = []
         self.y_watt = []
-        self.act = "None"
+        self.channel1_act = []
+        self.channel2_act = []
         # self.fig = plt.figure()
 
     def drawGraph(self, channelId, powerInfo: PowerMeterInfo):
@@ -188,8 +189,18 @@ class PowerMeterController(threading.Thread):
         :type channelId: InaChannel
         """
         with open(self.logfile, mode='a') as csvfile:
+            action = None
             csv_writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            csv_writer.writerow([int(channelId), power.vol, power.amp, power.watt, self.act])
+            if channelId == InaChannel.INA1_ID:
+                action = self.channel1_act
+            elif channelId == InaChannel.INA2_ID:
+                action = self.channel2_act
+            else:
+                return
+            act = [x.strip() for x in action.pop(0).split(',')]
+            csv_writer.writerow(
+                [int(channelId), power.vol, power.amp, power.watt] + act
+            )
             # self.drawGraph(channelId, power)
 
     def run(self):
@@ -306,11 +317,13 @@ class PowerMeterController(threading.Thread):
 
     def sendGetDataChannel(self, InaChannelId, act="None"):
         """
-
         :param InaChannelId:
         """
         self.sendCommand(0x00, RespFrame.RESP_CHANNEL_DATA, InaChannelId)
-        self.act = act
+        if InaChannelId == InaChannel.INA1_ID:
+            self.channel1_act.append(act)
+        elif InaChannelId == InaChannel.INA2_ID:
+            self.channel2_act.append(act)
 
     def sendSetSwChannel(self, ChannelId, state):
         arg = bytearray([state])
@@ -321,7 +334,11 @@ class PowerMeterController(threading.Thread):
 
     def processChannelData(self, chanelId, channel: PowerMeterInfo):
         print("chanelId %d vol=%d amp=%d watt=%d" % (chanelId, channel.vol, channel.amp, channel.watt))
-        # self.loggingPowerMeter(chanelId, channel)
+        self.loggingPowerMeter(chanelId, channel)
+
+    def getPowerInfo(self, test: str, action: int, status: int, detail="None"):
+        self.sendGetDataChannel(InaChannel.INA1_ID, "{},{},{},{}".format(test, action, status, detail))
+        self.sendGetDataChannel(InaChannel.INA2_ID, "{},{},{},{}".format(test, action, status, detail))
 
     def processFwVersion(self, major, minor):
         print("firmware major=%d minor=%d" % (major, minor))
