@@ -119,7 +119,7 @@ def crc16_calc(buf):
 
 
 class PowerMeterInfo:
-    def __init__(self, packet):
+    def __init__(self, packet, channelId=InaChannel.INA1_ID):
         vol = packet[0] << 8 | packet[1]
         self.vol = vol
         del packet[:2]
@@ -128,6 +128,7 @@ class PowerMeterInfo:
         del packet[:2]
         watt = packet[0] << 8 | packet[1]
         self.watt = watt
+        self.channelId = channelId
 
 
 class PowerMeterController(threading.Thread):
@@ -196,6 +197,8 @@ class PowerMeterController(threading.Thread):
             elif channelId == InaChannel.INA2_ID:
                 action = self.channel2_act
             else:
+                return
+            if len(action) == 0:
                 return
             act = [x.strip() for x in action.pop(0).split(',')]
             csv_writer.writerow(
@@ -324,6 +327,10 @@ class PowerMeterController(threading.Thread):
             self.channel1_act.append(act)
         elif InaChannelId == InaChannel.INA2_ID:
             self.channel2_act.append(act)
+        info_data = self.processData()
+        if info_data:
+            print("{} {} {} {}".format(InaChannelId, info_data.vol, info_data.watt, info_data.amp))
+            self.loggingPowerMeter(InaChannelId, info_data)
 
     def sendSetSwChannel(self, ChannelId, state):
         arg = bytearray([state])
@@ -336,9 +343,9 @@ class PowerMeterController(threading.Thread):
         print("chanelId %d vol=%d amp=%d watt=%d" % (chanelId, channel.vol, channel.amp, channel.watt))
         self.loggingPowerMeter(chanelId, channel)
 
-    def getPowerInfo(self, test: str, action: int, status: int, detail="None"):
-        self.sendGetDataChannel(InaChannel.INA1_ID, "{},{},{},{}".format(test, action, status, detail))
-        self.sendGetDataChannel(InaChannel.INA2_ID, "{},{},{},{}".format(test, action, status, detail))
+    def getPowerInfo(self, test: str, action: int, status: int, detail="None", testcount=0):
+        self.sendGetDataChannel(InaChannel.INA1_ID, "{},{},{},{},{}".format(test, action, status, detail, testcount))
+        self.sendGetDataChannel(InaChannel.INA2_ID, "{},{},{},{},{}".format(test, action, status, detail, testcount))
 
     def processFwVersion(self, major, minor):
         print("firmware major=%d minor=%d" % (major, minor))
@@ -376,8 +383,9 @@ class PowerMeterController(threading.Thread):
         else:
             if cmdId == RespFrame.RESP_CHANNEL_DATA:
                 chanelId = self.getChannelId(pktCmd)
-                dataInfo = PowerMeterInfo(packet)
+                dataInfo = PowerMeterInfo(packet, channelId=chanelId)
                 self.processChannelData(chanelId, dataInfo)
+                return dataInfo
             else:
                 print("unknown packet", packet)
 
@@ -412,7 +420,8 @@ class PowerMeterController(threading.Thread):
                     self.read_state = ReceiveFrame.RECEIVED_END_FR
                 elif self.read_state == ReceiveFrame.RECEIVED_END_FR:
                     if (buf[0] == FrameFormat.FRAME_END) and (self.crc16_read == crc16_calc(self.packet)):
-                        self.processPacket()
+                        obj = self.processPacket()
                         self.read_state = ReceiveFrame.RECEIVED_START_FR
+                        return obj
                     else:
                         raise Exception("data is invalid")
